@@ -236,12 +236,18 @@ function gameLoop(now) {
 }
 
 // Render function, parallax backgrounds, only redraw as needed
+function renderBackground() {
+  // ...background code...
+}
+
 function render() {
-    // Parallax backgrounds
+    
+  // Parallax backgrounds
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (assets.background2) ctx.drawImage(assets.background2, 0, 0, canvas.width, canvas.height);
     if (assets.background) ctx.drawImage(assets.background, 0, 0, canvas.width, canvas.height);
-
+  renderBackground();
+    
     // Game objects
     powerups.render(ctx);
     player.render(ctx);
