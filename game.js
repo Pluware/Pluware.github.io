@@ -1,14 +1,23 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Load images
+const playerImg = new Image();
+playerImg.src = 'assets/player.png';
+
+const enemyImg = new Image();
+enemyImg.src = 'assets/enemy.png';
+
+const bulletImg = new Image();
+bulletImg.src = 'assets/bullet.png';
+
 // Game objects
 const player = {
-    x: canvas.width / 2,
-    y: canvas.height - 50,
+    x: canvas.width / 2 - 20,
+    y: canvas.height - 60,
     w: 40,
     h: 40,
     speed: 5,
-    color: '#3af',
     dx: 0,
     dy: 0
 };
@@ -35,8 +44,7 @@ function shoot() {
         y: player.y,
         w: 10,
         h: 20,
-        speed: 8,
-        color: '#fff'
+        speed: 8
     });
 }
 
@@ -46,8 +54,7 @@ function spawnEnemy() {
         y: -40,
         w: 40,
         h: 40,
-        speed: 2 + Math.random() * 2,
-        color: '#f33'
+        speed: 2 + Math.random() * 2
     });
 }
 
@@ -110,19 +117,16 @@ function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Player
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
 
     // Bullets
     for (const b of bullets) {
-        ctx.fillStyle = b.color;
-        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.drawImage(bulletImg, b.x, b.y, b.w, b.h);
     }
 
     // Enemies
     for (const e of enemies) {
-        ctx.fillStyle = e.color;
-        ctx.fillRect(e.x, e.y, e.w, e.h);
+        ctx.drawImage(enemyImg, e.x, e.y, e.w, e.h);
     }
 }
 
@@ -133,4 +137,11 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-loop();
+// Start when images are loaded
+playerImg.onload = () => {
+    enemyImg.onload = () => {
+        bulletImg.onload = () => {
+            loop();
+        };
+    };
+};
