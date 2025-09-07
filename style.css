@@ -1,13 +1,75 @@
 body {
-    background: #222;
-    color: #fff;
-    text-align: center;
-    font-family: sans-serif;
+    margin: 0;
+    background: #181818;
+    overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
 }
-
-canvas {
+#gameCanvas {
     display: block;
     margin: 0 auto;
-    background: #333;
+    background: #222;
+    box-shadow: 0 0 32px #0008;
+    image-rendering: pixelated;
+    width: 100vw;
+    height: 100vh;
+    max-width: 100%;
+    max-height: 100%;
+}
+#ui-overlay {
+    position: absolute;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    pointer-events: none;
+    z-index: 2;
+}
+/* Mobile controls */
+.joystick {
+    position: absolute;
+    left: 5vw;
+    bottom: 10vh;
+    width: 100px;
+    height: 100px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+    pointer-events: auto;
+    touch-action: none;
+}
+.btn {
+    position: absolute;
+    right: 5vw;
+    bottom: 10vh;
+    width: 80px;
+    height: 80px;
+    background: #222;
     border: 2px solid #fff;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 2rem;
+    text-align: center;
+    pointer-events: auto;
+    opacity: 0.85;
+}
+.hud {
+    position: absolute;
+    left: 0; top: 0; width: 100vw; height: 8vh;
+    z-index: 3;
+    color: #fff;
+    font-size: 2vw;
+    padding: 1vw;
+    pointer-events: none;
+}
+.menu, .gameover, .pause {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(34,34,34,0.95);
+    border: 2px solid #fff;
+    border-radius: 12px;
+    color: #fff;
+    padding: 2vw;
+    font-size: 2vw;
+    z-index: 10;
+    display: none;
+}
+.menu.active, .gameover.active, .pause.active {
+    display: block;
 }

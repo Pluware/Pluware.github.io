@@ -1,157 +1,198 @@
+// Modular JS: Only keep game.js in index.html, import other modules here
+import { Player } from './player.js';
+import { EnemyManager } from './enemy.js';
+import { BulletManager } from './bullet.js';
+import { PowerupManager } from './powerup.js';
+import { HUD } from './hud.js';
+import { Effects } from './effects.js';
+import { Input } from './input.js';
+import { loadAssets } from './utils.js';
+
+// Canvas and UI overlay
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const ui = document.getElementById('ui-overlay');
 
-// Load images
-const backgroundImg = new Image();
-backgroundImg.src = 'assets/background.png';
-backgroundImg.onerror = () => { console.error("Background image failed to load!"); };
+// Responsive scaling
+function resizeCanvas() {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // Maintain aspect ratio (e.g., 3:2)
+    let scale = Math.min(w / 1200, h / 800);
+    canvas.style.width = (1200 * scale) + 'px';
+    canvas.style.height = (800 * scale) + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-const playerImg = new Image();
-playerImg.src = 'assets/player.png';
-playerImg.onerror = () => { console.error("Player image failed to load!"); };
+// Game state
+let state = 'menu'; // 'playing', 'paused', 'gameover'
 
-const enemyImg = new Image();
-enemyImg.src = 'assets/enemy.png';
-enemyImg.onerror = () => { console.error("Enemy image failed to load!"); };
+// Assets
+let assets = {};
+loadAssets().then(a => { assets = a; showMenu(); });
 
-const bulletImg = new Image();
-bulletImg.src = 'assets/bullet.png';
-bulletImg.onerror = () => { console.error("Bullet image failed to load!"); };
+let player, enemies, bullets, powerups, hud, effects, input;
+let score = 0, wave = 1;
 
-// Floor level (bottom of canvas minus character height and a little offset)
-const FLOOR_Y = canvas.height - 60;
+// Show start menu
+function showMenu() {
+    ui.innerHTML = `
+        <div class="menu active">
+            <h1>2D Shooter</h1>
+            <button onclick="startGame()">Play</button>
+            <button onclick="showInstructions()">Instructions</button>
+            <button onclick="showSettings()">Settings</button>
+        </div>
+    `;
+    state = 'menu';
+}
+window.showMenu = showMenu;
 
-// Game objects
-const player = {
-    x: canvas.width / 2 - 20,
-    y: FLOOR_Y,
-    w: 40,
-    h: 40,
-    speed: 2, // slower walking speed
-    dx: 0
+// Show instructions
+function showInstructions() {
+    ui.innerHTML = `
+        <div class="menu active">
+            <h2>Instructions</h2>
+            <p>Move: Arrow keys / WASD / Joystick<br>Shoot: Space / Tap / Button<br>Pause: P / Button</p>
+            <button onclick="showMenu()">Back</button>
+        </div>
+    `;
+}
+window.showInstructions = showInstructions;
+
+// Show settings
+function showSettings() {
+    ui.innerHTML = `
+        <div class="menu active">
+            <h2>Settings</h2>
+            <label>
+                <input type="checkbox" id="muteMusic" onchange="toggleMusic()">
+                Mute Music
+            </label>
+            <button onclick="showMenu()">Back</button>
+        </div>
+    `;
+}
+window.showSettings = showSettings;
+window.toggleMusic = function() {
+    if (assets.music) assets.music.muted = document.getElementById('muteMusic').checked;
 };
 
-const bullets = [];
-const enemies = [];
-
-let keys = {};
-
-// Handle input (horizontal movement only)
-document.addEventListener('keydown', (e) => {
-    keys[e.code] = true;
-    if (e.code === 'Space') {
-        shoot();
-    }
-});
-document.addEventListener('keyup', (e) => {
-    keys[e.code] = false;
-});
-
-function shoot() {
-    bullets.push({
-        x: player.x + player.w / 2 - 5,
-        y: player.y,
-        w: 10,
-        h: 20,
-        speed: 4 // slower bullet speed
-    });
+// Start game
+function startGame() {
+    ui.innerHTML = '';
+    state = 'playing';
+    score = 0;
+    wave = 1;
+    player = new Player(assets, canvas, ctx);
+    enemies = new EnemyManager(assets, canvas, ctx);
+    bullets = new BulletManager(assets, canvas, ctx);
+    powerups = new PowerupManager(assets, canvas, ctx);
+    hud = new HUD(canvas, player, score, wave);
+    effects = new Effects(assets, canvas, ctx);
+    input = new Input(canvas, player, bullets, assets, ui);
+    assets.music && assets.music.play();
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
 }
 
-function spawnEnemy() {
-    enemies.push({
-        x: Math.random() * (canvas.width - 40),
-        y: FLOOR_Y,
-        w: 40,
-        h: 40,
-        speed: 1 + Math.random() * 1 // slow walking speed
-    });
+window.startGame = startGame;
+
+// Pause menu
+function showPause() {
+    state = 'paused';
+    ui.innerHTML = `
+        <div class="pause active">
+            <h2>Paused</h2>
+            <button onclick="resumeGame()">Resume</button>
+            <button onclick="startGame()">Restart</button>
+            <button onclick="showMenu()">Quit</button>
+        </div>
+    `;
 }
+window.showPause = showPause;
 
-function update() {
-    // Player horizontal movement only
-    player.dx = 0;
-    if (keys['ArrowLeft'] || keys['KeyA']) player.dx = -player.speed;
-    if (keys['ArrowRight'] || keys['KeyD']) player.dx = player.speed;
+function resumeGame() {
+    ui.innerHTML = '';
+    state = 'playing';
+    lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+}
+window.resumeGame = resumeGame;
 
-    player.x += player.dx;
+// Game over screen
+function showGameOver() {
+    state = 'gameover';
+    ui.innerHTML = `
+        <div class="gameover active">
+            <h2>Game Over!</h2>
+            <p>Final Score: ${score}</p>
+            <button onclick="startGame()">Replay</button>
+            <button onclick="showMenu()">Menu</button>
+        </div>
+    `;
+    // Save high score
+    let hs = JSON.parse(localStorage.getItem('highscores') || '[]');
+    hs.push(score);
+    hs = hs.sort((a,b)=>b-a).slice(0,10);
+    localStorage.setItem('highscores', JSON.stringify(hs));
+}
+window.showGameOver = showGameOver;
 
-    // Boundaries
-    player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
-    player.y = FLOOR_Y; // always at floor
+// Main game loop
+let lastTime = performance.now();
+function gameLoop(now) {
+    if (state !== 'playing') return;
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
 
-    // Update bullets (vertical motion)
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        bullets[i].y -= bullets[i].speed;
-        if (bullets[i].y < -bullets[i].h) bullets.splice(i, 1);
+    // Update
+    player.update(dt, input, bullets, effects);
+    enemies.update(dt, player, bullets, effects, wave);
+    bullets.update(dt, enemies, effects);
+    powerups.update(dt, player, effects);
+    effects.update(dt);
+    // Difficulty/wave increase
+    if (enemies.cleared()) {
+        wave++;
+        enemies.spawnWave(wave);
+    }
+    // Score
+    score = player.score;
+    hud.update(player, score, wave);
+
+    // Render
+    render();
+
+    // Check game over
+    if (player.health <= 0) {
+        showGameOver();
+        return;
     }
 
-    // Update enemies (horizontal motion towards player)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        // Enemies move towards player horizontally
-        if (enemies[i].x < player.x) enemies[i].x += enemies[i].speed * 0.5;
-        if (enemies[i].x > player.x) enemies[i].x -= enemies[i].speed * 0.5;
-
-        enemies[i].y = FLOOR_Y; // always at floor
-        // Remove if overlapped player (optional: implement collision to reduce health)
-        if (rectsCollide(enemies[i], player)) {
-            enemies.splice(i, 1);
-        }
-    }
-
-    // Collision (bullet hits enemy)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-        for (let j = bullets.length - 1; j >= 0; j--) {
-            if (rectsCollide(enemies[i], bullets[j])) {
-                enemies.splice(i, 1);
-                bullets.splice(j, 1);
-                break;
-            }
-        }
-    }
-
-    // Enemy spawn
-    if (Math.random() < 0.01) spawnEnemy();
+    requestAnimationFrame(gameLoop);
 }
 
-function rectsCollide(a, b) {
-    return (
-        a.x < b.x + b.w &&
-        a.x + a.w > b.x &&
-        a.y < b.y + b.h &&
-        a.y + a.h > b.y
-    );
-}
-
-function draw() {
-    // Draw background
+// Render function, parallax backgrounds, only redraw as needed
+function render() {
+    // Parallax backgrounds
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    if (assets.background2) ctx.drawImage(assets.background2, 0, 0, canvas.width, canvas.height);
+    if (assets.background) ctx.drawImage(assets.background, 0, 0, canvas.width, canvas.height);
 
-    // Draw player
-    ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+    // Game objects
+    powerups.render(ctx);
+    player.render(ctx);
+    bullets.render(ctx);
+    enemies.render(ctx);
+    effects.render(ctx);
 
-    // Draw bullets
-    for (const b of bullets) {
-        ctx.drawImage(bulletImg, b.x, b.y, b.w, b.h);
-    }
-
-    // Draw enemies
-    for (const e of enemies) {
-        ctx.drawImage(enemyImg, e.x, e.y, e.w, e.h);
-    }
+    // HUD
+    hud.render();
 }
 
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
-// Wait until all images are loaded
-let imagesLoaded = 0;
-[backgroundImg, playerImg, enemyImg, bulletImg].forEach(img => {
-    img.onload = () => {
-        imagesLoaded++;
-        if (imagesLoaded === 4) loop();
-    };
+// Keyboard pause control
+window.addEventListener('keydown', e => {
+    if (e.code === 'KeyP' && state === 'playing') showPause();
 });
