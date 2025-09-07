@@ -4,12 +4,15 @@ const ctx = canvas.getContext('2d');
 // Load images
 const playerImg = new Image();
 playerImg.src = 'assets/player.png';
+playerImg.onerror = () => { console.error("Player image failed to load!"); };
 
 const enemyImg = new Image();
 enemyImg.src = 'assets/enemy.png';
+enemyImg.onerror = () => { console.error("Enemy image failed to load!"); };
 
 const bulletImg = new Image();
 bulletImg.src = 'assets/bullet.png';
+bulletImg.onerror = () => { console.error("Bullet image failed to load!"); };
 
 // Game objects
 const player = {
@@ -27,7 +30,6 @@ const enemies = [];
 
 let keys = {};
 
-// Handle input
 document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'Space') {
@@ -58,9 +60,7 @@ function spawnEnemy() {
     });
 }
 
-// Game loop
 function update() {
-    // Player movement
     player.dx = 0;
     player.dy = 0;
     if (keys['ArrowLeft'] || keys['KeyA']) player.dx = -player.speed;
@@ -75,13 +75,13 @@ function update() {
     player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
     player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
 
-    // Update bullets
+    // Bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
         bullets[i].y -= bullets[i].speed;
         if (bullets[i].y < -bullets[i].h) bullets.splice(i, 1);
     }
 
-    // Update enemies
+    // Enemies
     for (let i = enemies.length - 1; i >= 0; i--) {
         enemies[i].y += enemies[i].speed;
         if (enemies[i].y > canvas.height) enemies.splice(i, 1);
@@ -102,7 +102,6 @@ function update() {
     if (Math.random() < 0.02) spawnEnemy();
 }
 
-// Simple rectangle collision
 function rectsCollide(a, b) {
     return (
         a.x < b.x + b.w &&
@@ -112,7 +111,6 @@ function rectsCollide(a, b) {
     );
 }
 
-// Drawing
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -130,18 +128,17 @@ function draw() {
     }
 }
 
-// Main loop
 function loop() {
     update();
     draw();
     requestAnimationFrame(loop);
 }
 
-// Start when images are loaded
-playerImg.onload = () => {
-    enemyImg.onload = () => {
-        bulletImg.onload = () => {
-            loop();
-        };
+// Start game after images are loaded
+let imagesLoaded = 0;
+[playerImg, enemyImg, bulletImg].forEach(img => {
+    img.onload = () => {
+        imagesLoaded++;
+        if (imagesLoaded === 3) loop();
     };
-};
+});
