@@ -32,6 +32,67 @@ let state = 'menu'; // 'playing', 'paused', 'gameover'
 let assets = {};
 loadAssets().then(a => { assets = a; showMenu(); });
 
+// Load background layers
+const bgLayers = {
+    sky: new Image(),
+    buildings: new Image(),
+    wall: new Image(),
+    sidewalk: new Image()
+};
+bgLayers.sky.src = "assets/sky.png";
+bgLayers.buildings.src = "assets/buildings.png";
+bgLayers.wall.src = "assets/wall.png";
+bgLayers.sidewalk.src = "assets/sidewalk.png";
+
+// Parallax offsets for each layer
+let parallaxOffsets = {
+    sky: 0,
+    buildings: 0,
+    wall: 0,
+    sidewalk: 0
+};
+
+// Parallax speeds (adjust as desired)
+const parallaxSpeed = {
+    sky: 0.02,
+    buildings: 0.05,
+    wall: 0.1,
+    sidewalk: 0.2
+};
+
+// Update parallax based on player movement
+function updateParallax(playerX) {
+    parallaxOffsets.sky = -playerX * parallaxSpeed.sky;
+    parallaxOffsets.buildings = -playerX * parallaxSpeed.buildings;
+    parallaxOffsets.wall = -playerX * parallaxSpeed.wall;
+    parallaxOffsets.sidewalk = -playerX * parallaxSpeed.sidewalk;
+}
+
+// Draw all background layers in order
+function drawBackground(ctx, canvas, playerX = 0) {
+    updateParallax(playerX);
+
+    // Sky (fills canvas)
+    ctx.drawImage(bgLayers.sky, parallaxOffsets.sky, 0, canvas.width, canvas.height);
+
+    // Buildings (middle, starts at y=400)
+    ctx.drawImage(bgLayers.buildings, parallaxOffsets.buildings, 400, canvas.width, 400);
+
+    // Wall (above sidewalk, starts at y=600)
+    ctx.drawImage(bgLayers.wall, parallaxOffsets.wall, 600, canvas.width, 200);
+
+    // Sidewalk (bottom foreground, starts at y=700)
+    ctx.drawImage(bgLayers.sidewalk, parallaxOffsets.sidewalk, 700, canvas.width, 100);
+}
+
+// --- In your render/game loop, before drawing player/enemies/bullets ---
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawBackground(ctx, canvas, player.x);
+
+    // ...draw game objects after background...
+}
+
 let player, enemies, bullets, powerups, hud, effects, input;
 let score = 0, wave = 1;
 
